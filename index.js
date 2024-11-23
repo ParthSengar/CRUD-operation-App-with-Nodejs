@@ -1,62 +1,56 @@
-'use strict';
-module.exports = balanced;
-function balanced(a, b, str) {
-  if (a instanceof RegExp) a = maybeMatch(a, str);
-  if (b instanceof RegExp) b = maybeMatch(b, str);
+// BACKEND >> in this we will be writting API's code for our server site !! 
 
-  var r = range(a, b, str);
+const express = require('express')
+const mongoose = require('mongoose')
+const cors = require('cors')
+const UserModel = require('./models/Users')
 
-  return r && {
-    start: r[0],
-    end: r[1],
-    pre: str.slice(0, r[0]),
-    body: str.slice(r[0] + a.length, r[1]),
-    post: str.slice(r[1] + b.length)
-  };
-}
+const app = express()
+app.use(cors())    // to access our server site in our front end
+app.use(express.json())  // this for whenever we pass a data from our front-end 
+                        // to our back-end site 
 
-function maybeMatch(reg, str) {
-  var m = str.match(reg);
-  return m ? m[0] : null;
-}
+mongoose.connect("mongodb://127.0.0.1:27017/CRUD")
 
-balanced.range = range;
-function range(a, b, str) {
-  var begs, beg, left, right, result;
-  var ai = str.indexOf(a);
-  var bi = str.indexOf(b, ai + 1);
-  var i = ai;
+ app.get("/" , (req ,res)=>{
+    UserModel.find({})
+    .then(users => res.json(users))
+    .catch(err => res.json(err)) 
+ })
 
-  if (ai >= 0 && bi > 0) {
-    if(a===b) {
-      return [ai, bi];
-    }
-    begs = [];
-    left = str.length;
+ app.put('/updateUser/:id', (req,res)=>{
+    const id = req.params.id;
+    UserModel.findByIdAndUpdate({_id: id}, {
+        name: req.body.name,
+         email: req.body.email,
+          age: req.body.age
+        })
+    .then(users => res.json(users))
+    .catch(err => res.json(err) )
+ })
 
-    while (i >= 0 && !result) {
-      if (i == ai) {
-        begs.push(i);
-        ai = str.indexOf(a, i + 1);
-      } else if (begs.length == 1) {
-        result = [ begs.pop(), bi ];
-      } else {
-        beg = begs.pop();
-        if (beg < left) {
-          left = beg;
-          right = bi;
-        }
+ app.delete('/deleteUser/:id', (req,res)=>{
+    const id = req.params.id;
+    UserModel.findByIdAndDelete({_id: id})
+    .then(res => res.json(res))
+    .catch(err => res.json(err) )
+ })
 
-        bi = str.indexOf(b, i + 1);
-      }
 
-      i = ai < bi && ai >= 0 ? ai : bi;
-    }
+app.post("/CreateUser", (req, res)=>{
+    UserModel.create(req.body)
+    .then(users => res.json(users))
+    .catch(err => res.json(err) )
+})
 
-    if (begs.length) {
-      result = [ left, right ];
-    }
-  }
+app.get('/getUser/:id', (req,res)=>{
+    const id = req.params.id;
+    UserModel.findById({_id:id})
+    .then(users => res.json(users))
+    .catch(err => res.json(err) )
+})
 
-  return result;
-}
+//  Also to run our server 
+app.listen(3001, ()=>{
+    console.log("server is running")
+})
